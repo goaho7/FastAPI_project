@@ -10,3 +10,4 @@ class Book(BaseModel):
     publication_date: datetime
     genre: str
     notes: Optional[str] = None
+    author_id: int

@@ -23,3 +23,30 @@ async def get_all(session: AsyncSession = Depends(get_async_session)) -> list[Bo
     if books is None:
         raise HTTPException(status_code=404, detail="Books not found")
     return books
+
+
+@router.post("/", response_model=BookPD, response_model_exclude_none=True)
+async def create(book: BookPD, session: AsyncSession = Depends(get_async_session)):
+    return await CRUDBase(Book).create(book, session)
+
+
+@router.patch("/{book_id}", response_model=BookPD)
+async def update(book_id: int, obj_in: BookPD, session: AsyncSession = Depends(get_async_session)):
+    book = CRUDBase(Book)
+    book_obj = await book.get(book_id, session)
+    if book_obj is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+    return await book.update(book_obj, obj_in, session)
+
+
+@router.delete("/{book_id}", response_model=BookPD)
+async def delete(
+    book_id: int,
+    session: AsyncSession = Depends(get_async_session),
+) -> BookPD:
+
+    book = CRUDBase(Book)
+    book_obj = await book.get(book_id, session)
+    if book_obj is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+    return await book.remove(book_obj, session)

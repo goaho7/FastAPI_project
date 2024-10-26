@@ -5,5 +5,5 @@ from pydantic import BaseModel
 
 class Tag(BaseModel):
 
-    name: str
+    title: str
     description: Optional[str] = None
