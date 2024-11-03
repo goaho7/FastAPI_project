@@ -1,52 +1,34 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Annotated
 
-from app.crud.base import CRUDBase
-from app.models.book import Book
-from app.schemas.book import Book as BookPD
-from app.settings.db import get_async_session
+from fastapi import APIRouter, Depends, status
+
+from app.api.depensens import book_service
+from app.schemas.book import BookSchema, BookUpdateSchema
+from app.services.book import BookService
 
 router = APIRouter()
 
 
-@router.get("/{book_id}", response_model=BookPD)
-async def get(book_id: int, session: AsyncSession = Depends(get_async_session)) -> BookPD:
-    book = await CRUDBase(Book).get(book_id, session)
-    if book is None:
-        raise HTTPException(status_code=404, detail="Book not found")
-    return book
+@router.get("/{book_id}", status_code=status.HTTP_200_OK)
+async def get(book_id: int, service: Annotated[BookService, Depends(book_service)]) -> BookSchema:
+    return await service.get(book_id)
 
 
-@router.get("/", response_model=list[BookPD])
-async def get_all(session: AsyncSession = Depends(get_async_session)) -> list[BookPD]:
-    books = await CRUDBase(Book).get_all(session)
-    if books is None:
-        raise HTTPException(status_code=404, detail="Books not found")
-    return books
+@router.get("/", status_code=status.HTTP_200_OK)
+async def get_all(service: Annotated[BookService, Depends(book_service)]) -> list[BookSchema]:
+    return await service.get_all()
 
 
-@router.post("/", response_model=BookPD, response_model_exclude_none=True)
-async def create(book: BookPD, session: AsyncSession = Depends(get_async_session)):
-    return await CRUDBase(Book).create(book, session)
+@router.post("/", status_code=status.HTTP_201_CREATED)
+async def create(book: BookSchema, service: Annotated[BookService, Depends(book_service)]):
+    return await service.create(book)
 
 
-@router.patch("/{book_id}", response_model=BookPD)
-async def update(book_id: int, obj_in: BookPD, session: AsyncSession = Depends(get_async_session)):
-    book = CRUDBase(Book)
-    book_obj = await book.get(book_id, session)
-    if book_obj is None:
-        raise HTTPException(status_code=404, detail="Book not found")
-    return await book.update(book_obj, obj_in, session)
+@router.patch("/{book_id}", response_model=BookSchema, status_code=status.HTTP_200_OK)
+async def update(book_id: int, data: BookUpdateSchema, service: Annotated[BookService, Depends(book_service)]):
+    return await service.update(data, book_id)
 
 
-@router.delete("/{book_id}", response_model=BookPD)
-async def delete(
-    book_id: int,
-    session: AsyncSession = Depends(get_async_session),
-) -> BookPD:
-
-    book = CRUDBase(Book)
-    book_obj = await book.get(book_id, session)
-    if book_obj is None:
-        raise HTTPException(status_code=404, detail="Book not found")
-    return await book.remove(book_obj, session)
+@router.delete("/{book_id}")
+async def delete(book_id: int, service: Annotated[BookService, Depends(book_service)]):
+    return await service.remove(book_id)
